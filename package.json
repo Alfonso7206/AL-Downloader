@@ -1,0 +1,54 @@
+{
+  "name": "AL_Downloader",
+  "version": "1.0.0",
+  "description": "AL Downloader",
+  "main": "main.js",
+  "scripts": {
+  "start": "electron .",
+  "pack": "electron-builder --dir --win"
+  },
+  "build": {
+    "appId": "com.al.downloader",
+    "productName": "AL Downloader",
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "assets/**/*",
+	  "css/**/*",
+      "index.html",
+      "renderer.js",
+      "style.css",
+      "package.json",
+      "!*.bat",
+      "!*.7z",
+      "!*.iss",
+      "!assets/ws.bmp",
+      "!README.md"
+    ],
+    "extraFiles": [
+      {
+        "from": "Bin/",
+        "to": "bin"
+      }
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "win": {
+      "target": "dir",
+      "icon": "assets/icon.ico"
+    }
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "extract-zip": "^2.0.1",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "electron": "^38.1.0",
+    "electron-builder": "^24.6.0"
+  }
+}

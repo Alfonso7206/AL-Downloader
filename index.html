@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AL Downloader</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/bootstrap-icons.css">
+  <style>  
+  /* Ingrandire solo l'icona */
+  .tablink i {
+    font-size: 24px;       /* dimensione icona */
+  }
+  .tablink {
+  background: none;      /* niente sfondo */
+  border: none;          /* niente bordo */
+  padding: 30;            /* togli padding se vuoi */
+  cursor: pointer;       /* cambia il cursore al passaggio */
+  color: inherit;        /* usa il colore del testo circostante */
+}
+
+
+/* Modalità scura */
+body[data-theme="dark"] .tablink:hover {
+    color: orange;
+}
+
+/* Modalità chiara */
+body[data-theme="light"] .tablink:hover {
+    color: blue;
+}
+
+</style>
+
+</head>
+<body data-theme="dark">
+
+  <div class="tabs">
+    <button class="tablink" title="Settaggi" onclick="openTab(event, 'ControlsTab')"><i class="bi bi-gear-wide-connected"></i></button>
+    <button class="tablink" title="Download Video" onclick="openTab(event, 'LinksTab')"><i class="bi bi-film"></i></button>
+	<button class="tablink" title="Tema" id="themeToggle"><i class="bi bi-moon"></i></button>
+  </div>
+
+  <!-- ------------------ TAB CONTROLLI ------------------ -->
+  <div id="ControlsTab" class="tabcontent" style="display:none;">
+    <!-- Theme toggle & help -->
+    <button id="ytDlpHelpBtn"><i class="bi bi-chat-text"></i></button>
+    <button id="closeYtHelp"><i class="bi bi-chevron-double-up"></i></button>
+    <div id="ytHelpContainer" style="display:none;">
+     <pre id="outputHelp"></pre> 
+	 
+    </div>
+    <!-- Options & Folder -->
+<fieldset id="OptionsFolder">
+  <button id="openFolderBtn"><i class="bi bi-folder2-open"></i> Apri Cartella</button>
+  <button id="setFolderBtn"><i class="bi bi-folder-plus"></i> Salva in</button>
+
+  <input type="text" id="folderLabel" readonly placeholder="Seleziona una cartella..." />
+</fieldset>
+    <!-- Checkbox -->
+    <div class="checkbox-group">
+<label>
+  <input type="checkbox" id="audioOnlyChk"> 
+  <i class="bi bi-music-note-beamed"></i> Scarica MP3
+</label>
+
+<label>
+  <input type="checkbox" id="playlistChk"> 
+  <i class="bi bi-list-check"></i> Scarica Playlist
+</label>
+    </div>
+
+    <!-- Bottoni binari e update -->
+    <div class="button-group">
+      <button id="download-binaries"><i class="bi bi-download"></i> Scarica Binari</button>
+     <button id="updateYtDlpBtn">
+  <i class="bi bi-arrow-up-circle"></i> Aggiorna yt-dlp
+</button>
+    </div><br>
+
+    <!-- Barra di progresso binari -->
+    <div id="download-container-inner">
+      <div id="download-bar-wrapper">
+        <div id="download-bar-inner">
+          <span id="download-percent-inner">0%</span>
+        </div>
+      </div>	  
+      <div id="download-status"></div>
+    </div>
+ <div id="updateLog"></div>
+  </div>
+
+  <!-- ------------------ TAB LINK/DOWNLOAD ------------------ -->
+  <div id="LinksTab" class="tabcontent" style="display:none;">
+    <!-- Bottoni principali dei link -->
+    <div class="button-group">
+      <button id="downloadAllBtn"><i class="bi bi-download"></i> Scarica Tutti</button>
+      <button id="resetFormBtn"><i class="bi bi-arrow-repeat"></i> Riavvia Form</button>
+      <button id="clearList"><i class="bi bi-trash"></i> Cancella Lista</button>
+	   <div id="logArea"></div>
+    </div>
+
+    <!-- Lista video e contatori -->
+    <div id="listControls">
+      <div id="totalCountContainer">
+        Totale link: <span id="totalCount">0</span>
+      </div>
+    </div>
+
+    <!-- Textarea link -->
+    <div class="textarea-buttons-wrapper">
+      <div class="textarea-box">
+        <textarea id="urlArea" placeholder="Inserisci i link..."></textarea>
+      </div>
+      <div class="button-box">
+<button id="resetTextareaBtn"><i class="bi bi-x-circle"></i></button>
+<button id="pasteBtn"><i class="bi bi-clipboard"></i></button>
+<button id="addInlineBtn"><i class="bi bi-plus-circle"></i></button>
+      </div>
+    </div>
+
+    <input type="text" id="extraArgsInput" placeholder='Argomenti ex: --extractor-args "youtube:player-client=default"'/>
+    <div id="videoList"></div>
+
+    <!-- Popup per link salvati -->
+    <div id="popupOverlay" class="popup-overlay">
+      <div class="popup-content">
+        <p>Sono stati trovati link salvati. Vuoi ricaricarli?</p>
+        <div class="popup-buttons">
+          <button id="popupYes">Sì</button>
+          <button id="popupNo">No</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clear List Popup -->
+    <div id="clearPopupOverlay" style="display:none;">
+      <div class="popup-content">
+       <p><i class="bi bi-exclamation-triangle-fill"></i> Sei sicuro di voler svuotare la lista?</p>
+        <div class="popup-buttons">
+          <button id="clearPopupYes">Si</button>
+          <button id="clearPopupNo">No</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+  <script>
+    function openTab(evt, tabName) {
+      const tabcontent = document.getElementsByClassName("tabcontent");
+      for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      const tablinks = document.getElementsByClassName("tablink");
+      for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].classList.remove("active");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.classList.add("active");
+    }
+  </script>
+</body>
+</html>
