@@ -39,6 +39,21 @@ function updateVideoCount() {
     if (totalCountSpan) totalCountSpan.textContent = videos.length;
 }
 
+// ------------------ FUNZIONE DI FILTRO UNIFICATA ------------------
+function sanitizeAndExtractUrls(text) {
+    if (!text) return [];
+    // 1. Rimuove caratteri non validi (solo ASCII visibili)
+    const cleanText = text.replace(/[^\x20-\x7E\n\r]/g, '');
+    // 2. Estrae tutti i link che iniziano con http/https
+    const urls = [...new Set((cleanText.match(/https?:\/\/[^\s"'<>]+/gi) || []))];
+    // 3. Filtra solo URL validi
+    return urls.filter(isValidUrl);
+}
+// ------------------ AGGIORNA AREA DI TESTO ------------------
+function updateUrlArea(urls) {
+    urlArea.value = urls.join("\n");
+}
+// ---------- 
 const urlArea = document.getElementById("urlArea");
 const clearListBtn = document.getElementById("clearList");
 const audioOnlyChk = document.getElementById("audioOnlyChk");
@@ -60,9 +75,11 @@ addInlineBtn.addEventListener("click", async () => {
 
     const extraArgs = document.getElementById("extraArgsInput")?.value.trim() || "";
 
-    const validUrls = processTextInput(text).filter(isValidUrl);
+    // 🔹 Estrai solo gli URL veri (anche se hanno caratteri davanti/dietro)
+    const urls = sanitizeAndExtractUrls(text);
+
     if (validUrls.length === 0) {
-       logArea.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Nessun link valido!';
+        logArea.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Nessun link valido!';
         logArea.style.color = "orange";
         return;
     }
@@ -80,6 +97,7 @@ addInlineBtn.addEventListener("click", async () => {
     urlArea.value = "";
     updateVideoCount();
 });
+
 
 
 if (clearListBtn) {
@@ -654,7 +672,7 @@ if (urlArea) {
         urlArea.style.border = "";
 
         const processUrls = async text => {
-            const urls = [...new Set((text.match(/https?:\/\/[^\s"'<>]+/gi) || []).filter(isValidUrl))];
+            const urls = sanitizeAndExtractUrls(text);
             if (!urls.length) return;
 
             logArea.innerHTML = `<i class="bi bi-hourglass-split"></i> Caricamento drag&drop…`;
@@ -677,7 +695,7 @@ if (urlArea) {
         if (e.dataTransfer.files.length > 0) {
             for (const file of e.dataTransfer.files) {
                 const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-                if ([".txt", ".json", ".html", ".htm", ".md", ".dat"].includes(ext)) {
+                if ([".txt", ".json", ".html", ".htm", ".md"].includes(ext)) {
                     const text = await file.text();
                     await processUrls(text);
                 } else {
@@ -951,7 +969,9 @@ pasteBtn.addEventListener("click", async () => {
             return;
         }
 
-        const urls = processTextInput(text).filter(isValidUrl);
+        // 🔹 Estrai solo gli URL come fa il drag
+       const urls = sanitizeAndExtractUrls(text);
+
         if (urls.length === 0) {
             showLog(`<i class="bi bi-exclamation-triangle-fill"></i> Nessun link valido nella clipboard!`, "red");
             return;
@@ -962,11 +982,14 @@ pasteBtn.addEventListener("click", async () => {
         for (let i = 0; i < urls.length; i++) {
             await addVideoOrPlaylist(urls[i]);
             await sleep(300);
-            showLog(`<i class="bi bi-hourglass-split"></i> Aggiunto ${i + 1} di ${urls.length}…`, "gray", 2000);
+            showLog(
+                `<i class="bi bi-hourglass-split"></i> Aggiunto ${i + 1} di ${urls.length}…`,
+                "gray",
+                2000
+            );
         }
 
         showLog(`<i class="bi bi-check-circle"></i> Aggiunti ${urls.length} link dalla clipboard!`, "green");
-
         updateVideoCount();
 
     } catch (err) {
@@ -974,6 +997,7 @@ pasteBtn.addEventListener("click", async () => {
         showLog(`<i class="bi bi-x-circle"></i> Impossibile leggere la clipboard.`, "red");
     }
 });
+
 
 
 
@@ -1046,11 +1070,12 @@ if (detailsText) detailsText.innerHTML = `<i class="bi bi-exclamation-triangle">
 
 
 
+// ------------------ GESTIONE INPUT MANUALE ------------------
 urlArea.addEventListener("input", () => {
-    urlArea.value = filterInvalidChars(urlArea.value);
-    if (!urlArea.value.trim()) {
-        logArea.textContent = "";
-    }
+    const urls = sanitizeAndExtractUrls(urlArea.value);
+    updateUrlArea(urls);
+
+    if (!urls.length) logArea.textContent = "";
 });
 
 
