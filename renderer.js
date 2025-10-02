@@ -2,7 +2,21 @@ const axios = require("axios");
 const downloadAllBtn = document.getElementById("downloadAllBtn");
 const { ipcRenderer, clipboard, shell } = require("electron");
 const { spawn } = require("child_process");
+// --- Axios con User-Agent personalizzato ---
+const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                         "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                         "Chrome/119.0.0.0 Safari/537.36";
 
+async function axiosGet(url, config = {}) {
+    const finalConfig = {
+        ...config,
+        headers: {
+            "User-Agent": defaultUserAgent,
+            ...(config.headers || {})
+        }
+    };
+    return axios.get(url, finalConfig);
+}
 
 let downloadFolder = null;
 let binPaths = null;
@@ -403,7 +417,7 @@ function escapeHtml(str){ if(!str) return ""; return str.replace(/[&<>"']/g, m=>
 // ----------------- fetchHlsData -----------------
 async function fetchHlsData(video) {
     try {
-        const html = await axios.get(video.url).then(r => r.data);
+        const html = await axiosGet(video.url).then(r => r.data);
 
         // Trova link m3u8
         const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8/g);
@@ -416,13 +430,13 @@ async function fetchHlsData(video) {
         const thumbMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
         video.thumbnail = thumbMatch ? thumbMatch[1] : video.thumbnail;
 
-        // URL per il player
         if (video.urlHls) video.urlForPlayer = video.urlHls;
 
     } catch (e) {
         console.error("fetchHlsData error:", e);
     }
 }
+
 
 // --- Funzione aggiornata addVideo con extraArgs ---
 function formatDuration(seconds) {
@@ -463,7 +477,7 @@ async function addVideo(url, extraArgs = "") {
 
     try {
         // Recupera titolo, thumbnail e HLS dall'HTML
-        const html = await axios.get(video.url).then(r => r.data);
+        const html = await axiosGet(video.url).then(r => r.data);
         const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8/g);
         video.urlHls = hlsMatch ? hlsMatch[0] : null;
 
