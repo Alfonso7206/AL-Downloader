@@ -54,7 +54,7 @@ addInlineBtn.addEventListener("click", async () => {
     }
 
     logArea.innerHTML = '<i class="bi bi-hourglass-split"></i> Caricamento video/playlist…';
-    logArea.style.color = "#333";
+    logArea.style.color = "#0080C0";
 
     for (let i = 0; i < validUrls.length; i++) {
         await addVideoOrPlaylist(validUrls[i], extraArgs, i + 1, validUrls.length);
@@ -676,7 +676,7 @@ if (urlArea) {
             if (!urls.length) return;
 
             logArea.innerHTML = `<i class="bi bi-hourglass-split"></i> Caricamento drag&drop…`;
-            logArea.style.color = "gray";
+            logArea.style.color = "#0080FF";
 
             for (let i = 0; i < urls.length; i++) {
                 await addVideoOrPlaylist(urls[i]);
@@ -832,7 +832,7 @@ async function downloadAllParallel() {
     downloadAllBtn.disabled = true;
     logArea.innerHTML = `<i class="bi bi-arrow-down-circle"></i>Scaricamento di tutti i video in parallelo...`;
 
-    logArea.style.color = "gray";
+    logArea.style.color = "#0080FF";
 
     for (let i = 0; i < videos.length; i += concurrency) {
         const batch = videos.slice(i, i + concurrency);
@@ -975,12 +975,12 @@ pasteBtn.addEventListener("click", async () => {
             return;
         }
 
-        showLog(`<i class="bi bi-hourglass-split"></i> Caricamento clipboard…`, "gray");
+        showLog(`<i class="bi bi-hourglass-split"></i> Caricamento clipboard…`, "#0080FF");
 
         for (let i = 0; i < urls.length; i++) {
             await addVideoOrPlaylist(urls[i]);
             await sleep(300);
-            showLog(`<i class="bi bi-hourglass-split"></i> Aggiunto ${i + 1} di ${urls.length}…`, "gray", 2000);
+            showLog(`<i class="bi bi-hourglass-split"></i> Aggiunto ${i + 1} di ${urls.length}…`, "#0080FF", 2000);
         }
 
         showLog(`<i class="bi bi-check-circle"></i> Aggiunti ${urls.length} link dalla clipboard!`, "green");
@@ -1002,7 +1002,7 @@ if (downloadAllBtn) {
         downloadAllBtn.disabled = true;
         logArea.innerHTML = `<i class="bi bi-hourglass-split"></i> Scaricamento di tutti i video (modalità ad alta velocità)...`;
 
-        logArea.style.color = "gray";
+        logArea.style.color = "#0080FF";
 
         const concurrency = 10; // numero di download simultanei, aumenta la velocità
 
