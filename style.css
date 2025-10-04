@@ -36,6 +36,7 @@ body, input, select, textarea, button {
     --remove-text: #fff;
     --stop-bg: #8E24AA;
     --stop-text: #fff;
+	--scroll-bg:#eee;
 }
 
 body[data-theme="dark"] {
@@ -64,6 +65,7 @@ body[data-theme="dark"] {
     --remove-text: #fff;
     --stop-bg: #9C27B0;
     --stop-text: #fff;
+	--scroll-bg:#444;
 }
 .thumb-progress-bar {
     height: 5px;
@@ -703,4 +705,19 @@ background: none;
 .icon {
   margin-right: 8px; /* distanza tra icona e testo */
   vertical-align: middle;
+}
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    background-color: transparent;
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+    background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+    background-color: var(--scroll-bg);
 }
