@@ -7,10 +7,22 @@
   <link rel="stylesheet" href="css/bootstrap-icons.css">
   <style>  
   /* Ingrandire solo l'icona */
-  .tablink i {
+  .tablink,.openf,.clearl i {
     font-size: 24px;       /* dimensione icona */
   }
   .tablink {
+  background: none;      /* niente sfondo */
+  border: none;          /* niente bordo */
+  padding: 30;            /* togli padding se vuoi */
+  cursor: pointer;       /* cambia il cursore al passaggio */
+  color: inherit;        /* usa il colore del testo circostante */
+}
+
+  /* Ingrandire solo l'icona */
+  .openf,.clearl i {
+    font-size: 22px;       /* dimensione icona */
+  }
+  .openf,.clearl {
   background: none;      /* niente sfondo */
   border: none;          /* niente bordo */
   padding: 30;            /* togli padding se vuoi */
@@ -27,6 +39,42 @@ body[data-theme="dark"] .tablink:hover {
 /* Modalità chiara */
 body[data-theme="light"] .tablink:hover {
     color: blue;
+}
+
+
+/* Modalità scura */
+body[data-theme="dark"] .row.buttons {
+   background-color: #212121;
+}
+
+/* Modalità chiara */
+body[data-theme="light"] .row.buttons {
+    background-color: #fff;
+}
+
+.row.buttons {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #212121; /* colore btn-dark */
+    padding: 10px 20px;
+    display: flex;
+    justify-content: flex-start; /* li allinea a sinistra */
+    align-items: center;
+    gap: 10px; /* spazio tra bottoni */
+    z-index: 1000;
+    box-shadow: 0 -2px 15px rgba(0,0,0,0.5);
+}
+
+/* Spacer centrale per separare bottoni */
+.row.buttons .spacer {
+    flex-grow: 1;
+}
+
+/* Assicurati che la coda video non venga coperta dalla barra */
+.queue-area {
+    padding-bottom: 70px; /* altezza stimata della barra */
 }
 
 </style>
@@ -51,7 +99,7 @@ body[data-theme="light"] .tablink:hover {
     </div>
     <!-- Options & Folder -->
 <fieldset id="OptionsFolder">
-  <button id="openFolderBtn"><i class="bi bi-folder2-open"></i> Apri Cartella</button>
+ <!-- <button id="openFolderBtn"><i class="bi bi-folder2-open"></i> Apri Cartella</button> -->
   <button id="setFolderBtn"><i class="bi bi-folder-plus"></i> Salva in</button>
 
   <input type="text" id="folderLabel" readonly placeholder="Seleziona una cartella..." />
@@ -95,7 +143,7 @@ body[data-theme="light"] .tablink:hover {
     <div class="button-group">
       <button id="downloadAllBtn"><i class="bi bi-download"></i> Scarica Tutti</button>
       <button id="resetFormBtn"><i class="bi bi-arrow-repeat"></i> Riavvia Form</button>
-      <button id="clearList"><i class="bi bi-trash"></i> Cancella Lista</button>
+    <!-- <button id="clearListTop"><i class="bi bi-trash"></i> Cancella Lista</button> ->
 	   <div id="logArea"></div>
     </div>
 
@@ -119,7 +167,7 @@ body[data-theme="light"] .tablink:hover {
     </div>
 
     <input type="text" id="extraArgsInput" placeholder='Argomenti ex: --extractor-args "youtube:player-client=default"'/>
-    <div id="videoList"></div>
+   <div id="videoList" class="queue-area"></div>
 
     <!-- Popup per link salvati -->
     <div id="popupOverlay" class="popup-overlay">
@@ -143,7 +191,12 @@ body[data-theme="light"] .tablink:hover {
       </div>
     </div>
   </div>
+<!-- Barra bottoni fissa in basso -->
+<div class="row buttons d-flex flex-row">
+    <button id="openFolderBtn" title="Apri Cartella" class="openf"><i class="bi bi-folder"></i></button>
 
+    <button id="clearList" title="Cancella Lista" class="clearl"><i class="bi bi-trash"></i></button> 
+</div>
   <script src="renderer.js"></script>
   <script>
     function openTab(evt, tabName) {

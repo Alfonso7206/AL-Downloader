@@ -361,7 +361,7 @@ async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
         return await addVideo(cleanUrl, extraArgs);
     }
 
-    // Caso 2: È playlist e checkbox SPUNTATA → scarica tutti i video
+    // Caso 2: È playlist e checkbox SPUNTATA → scarica TUTTI i video
     if (playlistChk.checked && binPaths?.ytDlp) {
         return new Promise(resolve => {
             const args = ["--flat-playlist", "-j", cleanUrl];
@@ -374,8 +374,10 @@ async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
                 try {
                     const infos = dataStr.trim().split("\n").map(line => JSON.parse(line));
                     infos.forEach(info => {
-                        const videoUrl = `https://www.youtube.com/watch?v=${info.id}`;
-                        addVideo(videoUrl, extraArgs);
+                        if (info.id) {
+                            const videoUrl = `https://www.youtube.com/watch?v=${info.id}`;
+                            addVideo(videoUrl, extraArgs);
+                        }
                     });
                     resolve();
                 } catch (e) {
@@ -391,7 +393,7 @@ async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
         });
     }
 
-    // Caso 3: È playlist ma checkbox NON spuntata → prendi solo il primo video
+    // Caso 3: È playlist ma checkbox NON spuntata → prendi SOLO il primo video
     if (binPaths?.ytDlp) {
         return new Promise(resolve => {
             const args = ["--flat-playlist", "-j", cleanUrl];
@@ -413,13 +415,17 @@ async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
                     }
                 }
             });
+
+            proc.on("error", err => {
+                console.error("yt-dlp error:", err);
+                resolve(addVideo(cleanUrl, extraArgs));
+            });
         });
     }
 
+    // Fallback → aggiungi come singolo video
     return await addVideo(cleanUrl, extraArgs);
 }
-
-
 
 // ===================== Helper esistenti =====================
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
