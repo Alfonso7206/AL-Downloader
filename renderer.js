@@ -2,21 +2,7 @@ const axios = require("axios");
 const downloadAllBtn = document.getElementById("downloadAllBtn");
 const { ipcRenderer, clipboard, shell } = require("electron");
 const { spawn } = require("child_process");
-// --- Axios con User-Agent personalizzato ---
-const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                         "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                         "Chrome/119.0.0.0 Safari/537.36";
 
-async function axiosGet(url, config = {}) {
-    const finalConfig = {
-        ...config,
-        headers: {
-            "User-Agent": defaultUserAgent,
-            ...(config.headers || {})
-        }
-    };
-    return axios.get(url, finalConfig);
-}
 
 let downloadFolder = null;
 let binPaths = null;
@@ -39,21 +25,6 @@ function updateVideoCount() {
     if (totalCountSpan) totalCountSpan.textContent = videos.length;
 }
 
-// ------------------ FUNZIONE DI FILTRO UNIFICATA ------------------
-function sanitizeAndExtractUrls(text) {
-    if (!text) return [];
-    // 1. Rimuove caratteri non validi (solo ASCII visibili)
-    const cleanText = text.replace(/[^\x20-\x7E\n\r]/g, '');
-    // 2. Estrae tutti i link che iniziano con http/https
-    const urls = [...new Set((cleanText.match(/https?:\/\/[^\s"'<>]+/gi) || []))];
-    // 3. Filtra solo URL validi
-    return urls.filter(isValidUrl);
-}
-// ------------------ AGGIORNA AREA DI TESTO ------------------
-function updateUrlArea(urls) {
-    urlArea.value = urls.join("\n");
-}
-// ---------- 
 const urlArea = document.getElementById("urlArea");
 const clearListBtn = document.getElementById("clearList");
 const audioOnlyChk = document.getElementById("audioOnlyChk");
@@ -75,11 +46,9 @@ addInlineBtn.addEventListener("click", async () => {
 
     const extraArgs = document.getElementById("extraArgsInput")?.value.trim() || "";
 
-    // 🔹 Estrai solo gli URL veri (anche se hanno caratteri davanti/dietro)
-    const urls = sanitizeAndExtractUrls(text);
-
+    const validUrls = processTextInput(text).filter(isValidUrl);
     if (validUrls.length === 0) {
-        logArea.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Nessun link valido!';
+       logArea.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Nessun link valido!';
         logArea.style.color = "orange";
         return;
     }
@@ -97,7 +66,6 @@ addInlineBtn.addEventListener("click", async () => {
     urlArea.value = "";
     updateVideoCount();
 });
-
 
 
 if (clearListBtn) {
@@ -388,30 +356,31 @@ async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
     let cleanUrl = inputUrl.trim();
     const isPlaylist = /[?&]list=/.test(cleanUrl);
 
-    // Caso 1: non è playlist oppure checkbox playlist spuntata
-    if (!isPlaylist || playlistChk.checked) {
+    // Caso 1: NON è playlist → aggiungi video singolo
+    if (!isPlaylist) {
         return await addVideo(cleanUrl, extraArgs);
     }
 
-    // Caso 2: è playlist MA checkbox NON spuntata → prendi il primo video
-    if (binPaths?.ytDlp) {
+    // Caso 2: È playlist e checkbox SPUNTATA → scarica tutti i video
+    if (playlistChk.checked && binPaths?.ytDlp) {
         return new Promise(resolve => {
             const args = ["--flat-playlist", "-j", cleanUrl];
             const proc = spawn(binPaths.ytDlp, args);
 
-            let firstLine = "";
-            proc.stdout.on("data", chunk => {
-                if (!firstLine) {
-                    firstLine = chunk.toString().split("\n")[0]; // prendi la prima riga
-                    try {
-                        const info = JSON.parse(firstLine);
-                        const firstVideoUrl = `https://www.youtube.com/watch?v=${info.id}`;
-                        resolve(addVideo(firstVideoUrl, extraArgs));
-                        proc.kill(); // non serve leggere tutta la playlist
-                    } catch (e) {
-                        console.error("Errore parsing primo video playlist:", e);
-                        resolve(addVideo(cleanUrl, extraArgs)); // fallback
-                    }
+            let dataStr = "";
+            proc.stdout.on("data", chunk => dataStr += chunk.toString());
+
+            proc.on("close", () => {
+                try {
+                    const infos = dataStr.trim().split("\n").map(line => JSON.parse(line));
+                    infos.forEach(info => {
+                        const videoUrl = `https://www.youtube.com/watch?v=${info.id}`;
+                        addVideo(videoUrl, extraArgs);
+                    });
+                    resolve();
+                } catch (e) {
+                    console.error("Errore parsing playlist:", e);
+                    resolve(addVideo(cleanUrl, extraArgs));
                 }
             });
 
@@ -422,9 +391,34 @@ async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
         });
     }
 
-    // fallback senza yt-dlp
+    // Caso 3: È playlist ma checkbox NON spuntata → prendi solo il primo video
+    if (binPaths?.ytDlp) {
+        return new Promise(resolve => {
+            const args = ["--flat-playlist", "-j", cleanUrl];
+            const proc = spawn(binPaths.ytDlp, args);
+
+            let gotOne = false;
+            proc.stdout.on("data", chunk => {
+                if (!gotOne) {
+                    gotOne = true;
+                    const firstLine = chunk.toString().split("\n")[0];
+                    try {
+                        const info = JSON.parse(firstLine);
+                        const firstVideoUrl = `https://www.youtube.com/watch?v=${info.id}`;
+                        resolve(addVideo(firstVideoUrl, extraArgs));
+                        proc.kill();
+                    } catch (e) {
+                        console.error("Errore parsing primo video playlist:", e);
+                        resolve(addVideo(cleanUrl, extraArgs));
+                    }
+                }
+            });
+        });
+    }
+
     return await addVideo(cleanUrl, extraArgs);
 }
+
 
 
 // ===================== Helper esistenti =====================
@@ -435,7 +429,7 @@ function escapeHtml(str){ if(!str) return ""; return str.replace(/[&<>"']/g, m=>
 // ----------------- fetchHlsData -----------------
 async function fetchHlsData(video) {
     try {
-        const html = await axiosGet(video.url).then(r => r.data);
+        const html = await axios.get(video.url).then(r => r.data);
 
         // Trova link m3u8
         const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8/g);
@@ -448,13 +442,13 @@ async function fetchHlsData(video) {
         const thumbMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
         video.thumbnail = thumbMatch ? thumbMatch[1] : video.thumbnail;
 
+        // URL per il player
         if (video.urlHls) video.urlForPlayer = video.urlHls;
 
     } catch (e) {
         console.error("fetchHlsData error:", e);
     }
 }
-
 
 // --- Funzione aggiornata addVideo con extraArgs ---
 function formatDuration(seconds) {
@@ -495,7 +489,7 @@ async function addVideo(url, extraArgs = "") {
 
     try {
         // Recupera titolo, thumbnail e HLS dall'HTML
-        const html = await axiosGet(video.url).then(r => r.data);
+        const html = await axios.get(video.url).then(r => r.data);
         const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8/g);
         video.urlHls = hlsMatch ? hlsMatch[0] : null;
 
@@ -672,7 +666,7 @@ if (urlArea) {
         urlArea.style.border = "";
 
         const processUrls = async text => {
-            const urls = sanitizeAndExtractUrls(text);
+            const urls = [...new Set((text.match(/https?:\/\/[^\s"'<>]+/gi) || []).filter(isValidUrl))];
             if (!urls.length) return;
 
             logArea.innerHTML = `<i class="bi bi-hourglass-split"></i> Caricamento drag&drop…`;
@@ -695,7 +689,7 @@ if (urlArea) {
         if (e.dataTransfer.files.length > 0) {
             for (const file of e.dataTransfer.files) {
                 const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-                if ([".txt", ".json", ".html", ".htm", ".md"].includes(ext)) {
+                if ([".txt", ".json", ".html", ".htm", ".md", ".dat"].includes(ext)) {
                     const text = await file.text();
                     await processUrls(text);
                 } else {
@@ -969,9 +963,7 @@ pasteBtn.addEventListener("click", async () => {
             return;
         }
 
-        // 🔹 Estrai solo gli URL come fa il drag
-       const urls = sanitizeAndExtractUrls(text);
-
+        const urls = processTextInput(text).filter(isValidUrl);
         if (urls.length === 0) {
             showLog(`<i class="bi bi-exclamation-triangle-fill"></i> Nessun link valido nella clipboard!`, "red");
             return;
@@ -982,14 +974,11 @@ pasteBtn.addEventListener("click", async () => {
         for (let i = 0; i < urls.length; i++) {
             await addVideoOrPlaylist(urls[i]);
             await sleep(300);
-            showLog(
-                `<i class="bi bi-hourglass-split"></i> Aggiunto ${i + 1} di ${urls.length}…`,
-                "gray",
-                2000
-            );
+            showLog(`<i class="bi bi-hourglass-split"></i> Aggiunto ${i + 1} di ${urls.length}…`, "gray", 2000);
         }
 
         showLog(`<i class="bi bi-check-circle"></i> Aggiunti ${urls.length} link dalla clipboard!`, "green");
+
         updateVideoCount();
 
     } catch (err) {
@@ -997,7 +986,6 @@ pasteBtn.addEventListener("click", async () => {
         showLog(`<i class="bi bi-x-circle"></i> Impossibile leggere la clipboard.`, "red");
     }
 });
-
 
 
 
@@ -1070,12 +1058,11 @@ if (detailsText) detailsText.innerHTML = `<i class="bi bi-exclamation-triangle">
 
 
 
-// ------------------ GESTIONE INPUT MANUALE ------------------
 urlArea.addEventListener("input", () => {
-    const urls = sanitizeAndExtractUrls(urlArea.value);
-    updateUrlArea(urls);
-
-    if (!urls.length) logArea.textContent = "";
+    urlArea.value = filterInvalidChars(urlArea.value);
+    if (!urlArea.value.trim()) {
+        logArea.textContent = "";
+    }
 });
 
 
