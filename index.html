@@ -77,76 +77,6 @@ body[data-theme="light"] .row.buttons {
     padding-bottom: 70px; /* altezza stimata della barra */
 }
 
-
-
-
-/* Variabili per temi */
-:root {
-  --scrollbar-bg: rgba(0,0,0,0.05);      /* sfondo leggermente trasparente */
-  --scrollbar-thumb-start: rgba(100,100,100,0.6);
-  --scrollbar-thumb-end: rgba(150,150,150,0.6);
-  --scrollbar-thumb-hover-start: rgba(120,120,120,0.8);
-  --scrollbar-thumb-hover-end: rgba(180,180,180,0.8);
-  --scrollbar-radius: 12px;
-}
-
-/* Light theme */
-body.light {
-  --scrollbar-bg: rgba(0,0,0,0.1); /* track chiara */
-  --scrollbar-thumb-start: rgba(150,150,150,0.6);
-  --scrollbar-thumb-end: rgba(200,200,200,0.6);
-  --scrollbar-thumb-hover-start: rgba(200,200,200,0.8); /* più chiaro */
-  --scrollbar-thumb-hover-end: rgba(230,230,230,0.8);   /* più chiaro */
-}
-
-/* Dark theme */
-body.dark {
-  --scrollbar-bg: rgba(0,0,0,0.2); /* track scura */
-  --scrollbar-thumb-start: rgba(80,80,80,0.6);
-  --scrollbar-thumb-end: rgba(130,130,130,0.6);
-  --scrollbar-thumb-hover-start: rgba(50,50,50,0.8);  /* più scuro */
-  --scrollbar-thumb-hover-end: rgba(90,90,90,0.8);    /* più scuro */
-}
-
-/* Scrollbar Webkit */
-::-webkit-scrollbar {
-    width: 20px;
-    height: 20px;
-    background-color: var(--scrollbar-bg);
-    border-radius: var(--scrollbar-radius);
-}
-
-::-webkit-scrollbar-track {
-    background-color: var(--scrollbar-bg);
-    border-radius: var(--scrollbar-radius);
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-        180deg,
-        var(--scrollbar-thumb-start),
-        var(--scrollbar-thumb-end)
-    );
-    border-radius: var(--scrollbar-radius);
-    transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-        180deg,
-        var(--scrollbar-thumb-hover-start),
-        var(--scrollbar-thumb-hover-end)
-    );
-}
-
-/* Firefox */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb-end) var(--scrollbar-bg);
-}
-
-
-
 </style>
 
 </head>
@@ -169,7 +99,6 @@ body.dark {
     </div>
     <!-- Options & Folder -->
 <fieldset id="OptionsFolder">
- <!-- <button id="openFolderBtn"><i class="bi bi-folder2-open"></i> Apri Cartella</button> -->
   <button id="setFolderBtn"><i class="bi bi-folder-plus"></i> Salva in</button>
 
   <input type="text" id="folderLabel" readonly placeholder="Seleziona una cartella..." />
@@ -213,7 +142,6 @@ body.dark {
     <div class="button-group">
       <button id="downloadAllBtn"><i class="bi bi-download"></i> Scarica Tutti</button>
       <button id="resetFormBtn"><i class="bi bi-arrow-repeat"></i> Riavvia Form</button>
-    <!-- <button id="clearListTop"><i class="bi bi-trash"></i> Cancella Lista</button> ->
 	   <div id="logArea"></div>
     </div>
 
