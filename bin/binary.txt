@@ -1,1 +1,1 @@
-add binaries in this folder
+binaries are not included, go to options click on the > Download Binaries button and download them.
