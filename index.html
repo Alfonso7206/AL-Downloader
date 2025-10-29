@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AL Downloader v1.0</title>
+<title>AL Downloader v1.1</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="css/bootstrap-icons.css">
 </head>
@@ -59,8 +59,7 @@
 
     <div class="button-group">
       <button id="download-binaries"><i class="bi bi-download"></i> Download Binaries</button>
-     <button id="updateYtDlpBtn">
-  <i class="bi bi-arrow-up-circle"></i> Update yt-dlp
+     <button id="updateYtDlpBtn"><i class="bi bi-arrow-up-circle"></i> Update yt-dlp
 </button>
     </div><br>
     <div id="download-container-inner">
@@ -76,8 +75,10 @@
 
 <div id="LinksTab" class="tabcontent" style="display:block;">
   <div class="button-group">
-    <button id="downloadAllBtn"><i class="bi bi-download"></i> Download All</button>
-    <button id="rechargeLinkBtn"><i class="bi bi-arrow-repeat"></i> Reload Link</button>
+    <button id="downloadAllBtn"><i class="bi bi-download"></i> Download All Videos</button>
+    <button id="rechargeLinkBtn"><i class="bi bi-arrow-repeat"></i> Reload Videos</button>
+		<button id="selectAllBtn">Select All Videos</button>
+<button id="deselectAllBtn">Deselect All Videos</button>
 	<br>
 	<br>
     <div id="logArea"></div>
@@ -91,13 +92,13 @@
 
   <div class="textarea-buttons-wrapper">
     <div class="textarea-box">
-      <textarea id="urlArea" placeholder="Enter the links..."></textarea>
+      <textarea id="urlArea" placeholder="Paste links..."></textarea>
     </div>
 
     <div class="button-box">
       <button id="resetTextareaBtn"><i class="bi bi-x-circle"></i></button>
       <button id="pasteBtn"><i class="bi bi-clipboard"></i></button>
-      <button id="addInlineBtn"><i class="bi bi-plus-circle"></i></button>
+ 
     </div>
   </div>
 
@@ -128,7 +129,6 @@
 
   <div class="bottom-bar">
     <button id="openFolderBtn" title="📂 Open Folder" class="openf"><i class="bi bi-folder"></i></button>
-
     <button id="clearList" title="❌ Clear List" class="clearl"><i class="bi bi-trash"></i></button> 
   </div>
 
@@ -148,6 +148,17 @@
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.classList.add("active");
   }
+  function setAllVideoSelection(selected) {
+    videos.forEach(video => video.selected = selected);
+    document.querySelectorAll(".download-checkbox").forEach(chk => chk.checked = selected);
+    saveSettingsToMain();
+}
+
+const selectAllBtn = document.getElementById("selectAllBtn");
+const deselectAllBtn = document.getElementById("deselectAllBtn");
+
+selectAllBtn?.addEventListener("click", () => setAllVideoSelection(true));
+deselectAllBtn?.addEventListener("click", () => setAllVideoSelection(false));
   </script>
 </body>
 </html>

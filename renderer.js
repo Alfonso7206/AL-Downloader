@@ -31,7 +31,7 @@ const playlistChk = document.getElementById("playlistChk");
 const folderInput = document.getElementById("folderLabel");
 const openFolderBtn = document.getElementById("openFolderBtn");
 const setFolderBtn = document.getElementById("setFolderBtn");
-const addInlineBtn = document.getElementById("addInlineBtn");
+
 const resetTextareaBtn = document.getElementById("resetTextareaBtn");
 const pasteBtn = document.getElementById("pasteBtn");
 const totalCountSpan = document.getElementById("totalCount");
@@ -99,33 +99,7 @@ sitesInput.addEventListener("input", e => {
 });
 
 
-addInlineBtn?.addEventListener("click", async () => {
-  const text = urlArea.value.trim();
-  const urls = processTextInput(text);
 
-  if (urls.length === 0) {
-    logArea.textContent = "⚠️ No valid links found.";
-    return;
-  }
-
-  logArea.textContent = `⏳ Loading of ${urls.length} link in progress...`;
-
-  try {
-    let count = 0;
-    for (const url of urls) {
-      await addVideoOrPlaylist(url);
-      count++;
-      logArea.textContent = `🔗✅ Added ${count}/${urls.length}: ${url}`;
-    }
-
-    logArea.textContent = `🔗✅ ${urls.length} links added successfully!`;
-    setTimeout(() => { logArea.textContent = ""; }, 1500); 
-
-  } catch (err) {
-    console.error("❗ Error while adding:", err);
-    logArea.textContent = "❗ Error adding links.";
-  }
-});
 
 
 clearListBtn?.addEventListener("click", ()=>{
@@ -179,12 +153,11 @@ const ytSitesBtn = document.getElementById("ytDlpSitesBtn");
 const closeSitesBtn = document.getElementById("closeytDlpSites");
 const outputContainer = document.getElementById("ytHelpContainer");
 const output = document.getElementById("outputHelp");
-
-    const parallelChk = document.getElementById("parallelChk");
+const parallelChk = document.getElementById("parallelChk");
 
     function mostraTab(tab) {
         if (!tabLink || !tabConfig || !tabLinkBtn || !tabConfigBtn) {
-            console.warn("⚠️ One or more items were not found");
+            console.warn("👀 One or more items were not found!");
             return;
         }
 
@@ -213,7 +186,7 @@ if (ytBtn) {
         ytSitesBtn.style.display = "none"; 
         closeBtn.style.display = "inline-block";
         outputContainer.style.display = "block";
-        output.textContent = "⏳ Loading Help...";
+        output.textContent = "⏳ Loading Help..."; 
     });
 }
 
@@ -278,7 +251,7 @@ if (extraArgsInput) {
     binPaths = await ipcRenderer.invoke("get-bin-paths");
 
   if (settings.links && settings.links.length > 0) {
-    logArea.textContent = "⏳ Links loading...";
+    logArea.textContent = "⏳ Loading link...";
     try {
       const choice = await showPopup();
       if (choice === "yes") {
@@ -301,8 +274,8 @@ if (extraArgsInput) {
         logArea.textContent = ""; 
       }
     } catch (err) {
-      console.error("Popup error:", err);
-      logArea.textContent = "❗Error loading links.";
+      console.error("❗ Popup error:", err);
+      logArea.textContent = "❗ Error loading links.";
     }
   }
 
@@ -313,7 +286,7 @@ if (extraArgsInput) {
     if (ytSitesBtn && outputContainer && output && closeSitesBtn) {
         ytSitesBtn.addEventListener("click", async () => {
             outputContainer.style.display = "block";
-            output.textContent = "Loading...";
+            output.textContent = "⏳ Loading...";
             closeSitesBtn.style.display = "none";
 
             try {
@@ -321,7 +294,7 @@ if (extraArgsInput) {
                 output.textContent = result;
                 closeSitesBtn.style.display = "inline-block";
             } catch (err) {
-                output.textContent = `❗ Errore: ${err}`;
+                output.textContent = `❗ Error: ${err}`;
                 closeSitesBtn.style.display = "inline-block";
             }
         });
@@ -332,6 +305,7 @@ if (extraArgsInput) {
     }
 //
 
+    // --------------------- Bottone help yt-dlp ---------------------
     if (ytBtn && outputContainer && output && closeBtn) {
         ytBtn.addEventListener("click", async () => {
             outputContainer.style.display = "block";
@@ -343,7 +317,7 @@ if (extraArgsInput) {
                 output.textContent = result;
                 closeBtn.style.display = "inline-block";
             } catch (err) {
-                output.textContent = `❗ Errore: ${err}`;
+                output.textContent = `❗ Error: ${err}`;
                 closeBtn.style.display = "inline-block";
             }
         });
@@ -386,8 +360,6 @@ function showPopup() {
     });
 }
 
-
-
   themeToggle.addEventListener("click", () => {
     const newTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
     document.body.dataset.theme = newTheme;
@@ -408,7 +380,7 @@ setFolderBtn.addEventListener("click", async () => {
             downloadFolder = savedFolder;
             if (folderInput) {
                 folderInput.value = savedFolder;  
-                setFolderPath(savedFolder);       
+                setFolderPath(savedFolder);      
             }
             saveSettingsToMain();
         });
@@ -417,6 +389,7 @@ setFolderBtn.addEventListener("click", async () => {
 
 
 audioOnlyChk.addEventListener("change", () => {
+    // If you want, you can add logic to disable other checkboxes if needed
     saveSettingsToMain();
 });
 
@@ -429,43 +402,55 @@ parallelChk.addEventListener("change", () => {
 });
 //
 
-async function addVideoOrPlaylist(inputUrl, extraArgs=""){
-    if(!inputUrl) return;
+async function addVideoOrPlaylist(inputUrl, extraArgs = "") {
+    if (!inputUrl) return;
+
     const cleanUrl = inputUrl.trim();
-    if(binPaths?.ytDlp){
-        return new Promise(resolve=>{
-            const args=["--flat-playlist","-j", cleanUrl];
-            const proc=spawn(binPaths.ytDlp,args);
-            let dataStr="";
-            proc.stdout.on("data", chunk=>dataStr+=chunk.toString());
-            proc.on("close", ()=>{
-                try{
-                    const infos = dataStr.trim().split("\n").map(line=>JSON.parse(line));
-                    if(playlistChk.checked && infos.length>1){
-                        infos.forEach(info=>{
-                            if(info.id && info.webpage_url) addVideo(info.webpage_url, extraArgs);
-                            else if(info.id) addVideo(info.id, extraArgs);
-                        });
-                        resolve();
-                    } else {
-                        const firstInfo = infos[0];
-                        if(firstInfo.id && firstInfo.webpage_url) resolve(addVideo(firstInfo.webpage_url, extraArgs));
-                        else if(firstInfo.id) resolve(addVideo(firstInfo.id, extraArgs));
-                        else resolve(addVideo(cleanUrl, extraArgs));
-                    }
-                }catch(e){ console.error("❗ Parsing error:", e); resolve(addVideo(cleanUrl, extraArgs)); }
-            });
-            proc.on("error", err=>{ console.error("❗ yt-dlp error:", err); resolve(addVideo(cleanUrl, extraArgs)); });
+
+    try {
+        if (!binPaths?.ytDlp) return await addVideo(cleanUrl, extraArgs);
+
+        const args = ["--flat-playlist", "-j", cleanUrl];
+        const proc = spawn(binPaths.ytDlp, args);
+        let dataStr = "", errorStr = "";
+
+        proc.stdout.on("data", chunk => dataStr += chunk.toString());
+        proc.stderr.on("data", chunk => errorStr += chunk.toString());
+
+        const exitCode = await new Promise(resolve => {
+            proc.on("close", resolve);
+            proc.on("error", () => resolve(-1));
         });
+
+        if (exitCode !== 0) {
+            console.error("❗ yt-dlp error:", errorStr || `Exit code ${exitCode}`);
+            return await addVideo(cleanUrl, extraArgs);
+        }
+
+        const infos = dataStr.trim().split("\n").map(line => JSON.parse(line));
+
+        if (playlistChk.checked && infos.length > 1) {
+            for (const info of infos) {
+                const url = info.webpage_url || info.id;
+                if (url) await addVideo(url, extraArgs);
+            }
+            return;
+        }
+
+        const firstInfo = infos[0];
+        const url = firstInfo.webpage_url || firstInfo.id || cleanUrl;
+        await addVideo(url, extraArgs);
+
+    } catch (err) {
+        console.error("❗ Single Video or Playlist error:", err);
+        await addVideo(cleanUrl, extraArgs);
     }
-    return await addVideo(cleanUrl, extraArgs);
 }
 
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function getDomainFromUrl(url) { try { return new URL(url).hostname; } catch(e){ return null; } }
 function escapeHtml(str){ if(!str) return ""; return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
 
 
 function formatDuration(seconds) {
@@ -502,9 +487,8 @@ async function addVideo(url, extraArgs = "") {
     updateVideoCount();
 
     video.extraArgs = document.getElementById("extraArgsInput")?.value.trim() || "";
-
+// Retrieve valid links m3u8, mp4 etc.. works on many links
     try {
-
         const html = await axios.get(video.url).then(r => r.data);
         const hlsMatch = html.match(/https?:\/\/[^\s"'<>]+\.m3u8/g);
         video.urlHls = hlsMatch ? hlsMatch[0] : null;
@@ -517,9 +501,9 @@ async function addVideo(url, extraArgs = "") {
 
         if (video.urlHls) video.urlForPlayer = video.urlHls;
     } catch (e) {
-        console.error("❗fetchHlsData error:", e);
+        console.error("❗Hls Data error:", e);
     }
-
+//
     if (binPaths?.ytDlp) {
         fetchVideoDetails(video);
     }
@@ -531,6 +515,7 @@ async function addVideo(url, extraArgs = "") {
     return video;
 }
 
+
 const groupBox = document.getElementById("groupBox");
 
 
@@ -538,64 +523,148 @@ function updateGroupBoxVisibility(anyThumbnailLoaded) {
     if (!groupBox) return;
 
     if (videos.length > 0 && anyThumbnailLoaded) {
-        groupBox.style.display = "flex"; 
+        groupBox.style.display = "flex"; // Show the container
         requestAnimationFrame(() => {
-            groupBox.style.opacity = 1;      
+            groupBox.style.opacity = 1;          // Fade-in
         });
     } else {
-        groupBox.style.opacity = 0;             
+        groupBox.style.opacity = 0;             // Fade-out
         setTimeout(() => {
             if (videos.length === 0 || !anyThumbnailLoaded) {
                 groupBox.style.display = "none";
             }
-        }, 300); 
+        }, 300); // time fade-out
     }
 }
-function renderVideos(){
-    if(!videoList) return;
-    videoList.innerHTML="";
-    let anyThumbnailLoaded=false;
-    videos.forEach((video,index)=>{
-        const div=document.createElement("div");
-        div.className="video-item";
-        div.dataset.pid=video.pid;
-        div.draggable=true;
+function renderVideos() {
+    if (!videoList) return;
 
-        let thumbHTML = video.thumbnail? `<img src="${video.thumbnail}" class="thumbnail" onclick="openThumbnail(${index})">` : `<div class="spinner"></div>`;
-        if(video.thumbnail) anyThumbnailLoaded=true;
+    let anyThumbnailLoaded = false;
 
-        const formatOptions=video.formats? video.formats.map(f=>`<option value="${f.format_id}">${f.format_id} (${f.ext})${f.sizeStr?" - "+f.sizeStr:""}</option>`).join("") : "";
-        const domain=video.domain||getDomainFromUrl(video.url);
-        const durationLabel=video.duration? `<i class="bi bi-clock"></i> ${video.duration}<br><small><i class="bi bi-globe"></i> ${domain}</small>` : `<small><i class="bi bi-globe"></i> ${domain}</small>`;
-
-        div.innerHTML=`
-        <div class="thumbnail-container">${thumbHTML}<div class="thumb-progress-bar"></div></div>
-        <div class="video-info">
-            <strong>${escapeHtml(video.title)}</strong>
-            <div class="status">${video.status||""}</div>
-            <label>
-                <select class="quality-select" onchange="setFormat(${index}, this.value)">
-                    <option value="">Best MP4</option>
-                    ${formatOptions}
-                </select>
-            </label>
-            <div class="duration">${durationLabel}</div>
-            <div class="download-details"></div>
-        </div>
-        <div class="video-buttons">
-            <button class="download-btn" onclick="downloadVideo(${index})"><i class="bi bi-download"></i></button>
-            <button class="stop-btn" onclick="stopDownload(${index})"><i class="bi bi-sign-stop"></i></button>
-            <button class="remove-btn" onclick="removeVideo(${index})"><i class="bi bi-trash"></i></button>
-            <button class="paste-btn" onclick="pasteLink(${index})"><i class="bi bi-link"></i></button>
-            <button class="open-btn" onclick="openLink(${index})"><i class="bi bi-globe2"></i></button>
-        </div>`;
-        videoList.appendChild(div);
+    const existingItems = {};
+    videoList.querySelectorAll('.video-item').forEach(el => {
+        const pid = parseInt(el.dataset.pid);
+        existingItems[pid] = el;
     });
-    const totalCountContainer=document.getElementById("totalCountContainer");
-    if(totalCountContainer) totalCountContainer.style.display=anyThumbnailLoaded?"block":"none";
-    if(clearListBtn) clearListBtn.style.display=videos.length>0?"inline-block":"none";
+
+    videos.forEach((video, index) => {
+        let div = existingItems[video.pid];
+
+        const domain = video.domain || getDomainFromUrl(video.url);
+        const durationLabel = video.duration
+            ? `<i class="bi bi-clock"></i> ${video.duration}<br><small><i class="bi bi-globe"></i> ${domain}</small>`
+            : `<small><i class="bi bi-globe"></i> ${domain}</small>`;
+
+        const formatOptions = video.formats
+            ? video.formats.map(f => `<option value="${f.format_id}">${f.format_id} (${f.ext})${f.sizeStr ? " - " + f.sizeStr : ""}</option>`).join("")
+            : "";
+
+        const thumbHTML = video.thumbnail
+            ? `<input type="checkbox" class="download-checkbox overlay-checkbox" data-pid="${video.pid}" ${video.selected ? "checked" : ""}><img src="${video.thumbnail}" class="thumbnail" data-index="${index}">`
+            : `<div class="spinner"></div>`;
+
+        if (video.thumbnail) anyThumbnailLoaded = true;
+
+        if (div) {
+            div.querySelector(".thumbnail-container").innerHTML = thumbHTML + '<div class="thumb-progress-bar"></div>';
+            div.querySelector("strong").innerHTML = escapeHtml(video.title);
+            div.querySelector(".status").innerHTML = video.status || "";
+            div.querySelector(".duration").innerHTML = durationLabel;
+            const select = div.querySelector(".quality-select");
+            if (select) select.innerHTML = `<option value="">Best MP4</option>` + formatOptions;
+            const checkbox = div.querySelector(".download-checkbox");
+            if (checkbox) checkbox.checked = !!video.selected;
+        } else {
+            // Create new item if it doesn't exist
+            div = document.createElement("div");
+            div.className = "video-item";
+            div.dataset.pid = video.pid;
+            div.draggable = true;
+
+            div.innerHTML = `
+			<div class="thumbnail-container">
+				${thumbHTML}
+				<div class="thumb-progress-bar"></div>					
+			</div>
+
+            <div class="video-info">
+                <strong>${escapeHtml(video.title)}</strong>
+                <div class="status">${video.status || ""}</div>
+                <label>
+                    <select class="quality-select" data-index="${index}">
+                        <option value="">Best MP4</option>
+                        ${formatOptions}
+                    </select>
+                </label>
+             <div class="duration">${durationLabel}</div>
+                <div class="download-details"></div>
+            </div>
+            <div class="video-buttons">
+                <button class="download-btn" data-index="${index}"><i class="bi bi-download"></i></button>
+                <button class="stop-btn" data-index="${index}"><i class="bi bi-sign-stop"></i></button>
+                <button class="remove-btn" data-index="${index}"><i class="bi bi-trash"></i></button>
+                <button class="paste-btn" data-index="${index}"><i class="bi bi-link"></i></button>
+                <button class="open-btn" data-index="${index}"><i class="bi bi-globe2"></i></button>
+            </div>`;
+
+            videoList.appendChild(div);
+        }
+    });
+
+    Object.keys(existingItems).forEach(pid => {
+        if (!videos.find(v => v.pid == pid)) {
+            videoList.removeChild(existingItems[pid]);
+        }
+    });
+
+    const totalCountContainer = document.getElementById("totalCountContainer");
+    if (totalCountContainer) totalCountContainer.style.display = anyThumbnailLoaded ? "block" : "none";
+    if (clearListBtn) clearListBtn.style.display = videos.length > 0 ? "inline-block" : "none";
     updateGroupBoxVisibility(anyThumbnailLoaded);
+
+videoList.onclick = (e) => {
+    const btn = e.target.closest("button[data-index]");
+    if (!btn) return;
+
+    const index = parseInt(btn.dataset.index);
+    const video = videos[index];
+    if (!video) return;
+
+    if (btn.classList.contains("download-btn")) {
+        downloadVideo(index);
+    } 
+    else if (btn.classList.contains("stop-btn")) {
+        stopDownload(index);
+    } 
+    else if (btn.classList.contains("remove-btn")) {
+        removeVideo(index);
+    } 
+    else if (btn.classList.contains("paste-btn")) {
+        pasteLink(index);
+    } 
+    else if (btn.classList.contains("open-btn")) {
+        openLink(index);
+    } 
+    else if (e.target.closest(".thumbnail")) {
+        openThumbnail(index);
+    }
+};
+
+
+    videoList.onchange = (e) => {
+        if (e.target.classList.contains("download-checkbox")) {
+            const pid = e.target.dataset.pid;
+            const video = videos.find(v => v.pid == pid);
+            if (video) video.selected = e.target.checked;
+        }
+        if (e.target.classList.contains("quality-select")) {
+            const idx = e.target.dataset.index;
+            if (idx !== undefined) videos[idx].format = e.target.value;
+        }
+    };
+
     addDragAndDropHandlers();
+    updateVideoCount();
 }
 
 window.pasteLink = (index) => { urlArea.value = videos[index]?.url || ""; urlArea.focus(); };
@@ -618,13 +687,42 @@ window.removeVideo = (index) => {
 
     if (clipboard.readText().trim() === videos[index].url) clipboard.writeText("");
 
-    if (urlArea.value.trim() === videos[index].url) {
-    }
-
     videos.splice(index, 1);
     renderVideos();
-    saveSettingsToMain();
-    updateVideoCount();
+};
+
+window.pasteLink = async (index) => {
+    const video = videos[index];
+    if (!video) return;
+
+    urlArea.value = video.url || "";
+    urlArea.focus();
+
+    const isPlaylist = document.getElementById("playlistCheckbox")?.checked || false;
+
+    try {
+        const info = await window.electronAPI.getVideoInfo({ url: video.url, playlist: isPlaylist });
+        const videosToAdd = Array.isArray(info) ? info : [info];
+
+        videosToAdd.forEach(v => {
+            if (!videos.some(existing => existing.url === v.url)) {
+                videos.push({ ...v, playlist: isPlaylist, format: "", status: "" });
+            }
+        });
+
+        renderVideos();
+        saveSettingsToMain(); 
+    } catch (err) {
+        console.error("❗ Error loading video/playlist:", err);
+    }
+};
+
+window.openLink = (index) => {
+    if (videos[index]) shell.openExternal(videos[index].url);
+};
+
+window.openThumbnail = (index) => {
+    if (videos[index]?.thumbnail) shell.openExternal(videos[index].thumbnail);
 };
 
 videos.forEach(video => {
@@ -639,25 +737,28 @@ if (urlArea) {
         e.preventDefault();
         urlArea.style.border = "";
 
-        const processUrls = async text => {
-            const urls = [...new Set((text.match(/https?:\/\/[^\s"'<>]+/gi) || []).filter(isValidUrl))];
-            if (!urls.length) return;
+const processUrls = async text => {
+    const urls = [...new Set((text.match(/https?:\/\/[^\s"'<>]+/gi) || []).filter(isValidUrl))];
+    if (!urls.length) return;
 
-            logArea.innerHTML = `<i class="bi bi-hourglass-split"></i> Drag & drop upload…`;
-            logArea.style.color = "#0080FF";
+    logArea.innerHTML = `Drag & drop upload…`;
+    logArea.style.color = "#0080FF";
 
-            for (let i = 0; i < urls.length; i++) {
-                await addVideoOrPlaylist(urls[i]);
-                await sleep(300);
-               logArea.innerHTML = `<i class="bi bi-hourglass-split"></i> Add ${i + 1} di ${urls.length}…`;
+    const addedVideos = [];
+    for (let i = 0; i < urls.length; i++) {
+        const video = await addVideoOrPlaylist(urls[i]);
+        if (video) addedVideos.push(video);
+        await sleep(300);
+        logArea.innerHTML = `Add ${i + 1} di ${urls.length}…`;
+    }
 
-            }
+    logArea.innerHTML = `Added ${addedVideos.length} link!`;
+    setTimeout(() => logArea.textContent = "", 5000);
 
-            logArea.innerHTML = `<i class="bi bi-check-circle"></i> Added ${urls.length} link!`;
-            setTimeout(() => logArea.textContent = "", 5000);
+    updateVideoCount();
+    saveSettingsToMain(); 
+};
 
-            updateVideoCount();
-        };
 
 
         if (e.dataTransfer.files.length > 0) {
@@ -667,7 +768,7 @@ if (urlArea) {
                     const text = await file.text();
                     await processUrls(text);
                 } else {
-                    alert(`Drag a valid file (${[".txt", ".json", ".html", ".htm", ".md"].join(", ")}) with connections.`);
+                    alert(`Drag a valid file (${[".txt", ".json", ".html", ".htm", ".md"].join(", ")}) with connections ⚠️.`);
                 }
             }
             return;
@@ -689,9 +790,9 @@ function fetchVideoDetails(video){
     proc.on("close", ()=>{
         try{
             const info=JSON.parse(dataStr);
-            video.title=info.title||video.title;
-            video.thumbnail=info.thumbnail?.replace(/hqdefault/,'maxresdefault')||video.thumbnail;
-            video.duration=info.duration?formatDuration(info.duration):(info.duration_string||"");
+            video.title = info.title || video.title;
+            video.thumbnail = info.thumbnail?.replace(/hqdefault/,'maxresdefault') || video.thumbnail;
+            video.duration = info.duration ? formatDuration(info.duration) : (info.duration_string || "");
             video.formats=(info.formats||[]).map(f=>{
                 let sizeStr="";
                 const bytes=f.filesize||f.filesize_approx;
@@ -702,6 +803,7 @@ function fetchVideoDetails(video){
         renderVideos();
     });
 }
+
 
 async function downloadSingleVideo(video) {
     if (!video) return;
@@ -714,46 +816,116 @@ async function downloadSingleVideo(video) {
     const progressBar = videoDiv.querySelector(".thumb-progress-bar");
     const detailsText = videoDiv.querySelector(".download-details");
 
+    // 🔵 Stato iniziale
     if (spinner) spinner.style.display = "inline-block";
-   if (statusText) statusText.innerHTML = `<i class="bi bi-hourglass-split"></i> Download in progress...`;
-
+    if (statusText) statusText.innerHTML = `⬇️ Download in progress...`;
     if (progressBar) {
         progressBar.style.width = "0%";
         progressBar.style.backgroundColor = "#2196F3";
     }
-    if (detailsText) detailsText.textContent = "";
+    if (detailsText) detailsText.innerHTML = "";
 
     const extraArgs = video.extraArgs || "";
 
-    const fileName = sanitizeFileName(video.title) || "video";
-
     try {
-await ipcRenderer.invoke("start-download", {
-    ...video,
-    outputDir: downloadFolder || null,
-    outputName: video.title, 
-    audioOnly: audioOnlyChk.checked,
-    playlist: playlistChk.checked,
-	parallel: parallelChk.checked,
-    format: video.format || null,
-    extraArgs
-});
+        await ipcRenderer.invoke("start-download", {
+            ...video,
+            outputDir: downloadFolder || null,
+            outputName: video.title,
+            audioOnly: audioOnlyChk.checked,
+            playlist: playlistChk.checked,
+            parallel: parallelChk.checked,
+            format: video.format || null,
+            extraArgs
+        });
 
-       if (progressBar) progressBar.style.width = "100%";
-       if (progressBar) progressBar.style.backgroundColor = "#4CAF50";
-       if (statusText) statusText.innerHTML = `<i class="bi bi-check-circle"></i> Completed! ✅`;
-
-       if (detailsText) detailsText.innerHTML = `<i class="bi bi-check-circle"></i> Completed! ✅`;
-
+        if (progressBar) {
+            progressBar.style.width = "100%";
+            progressBar.style.backgroundColor = "#4CAF50";
+        }
+        if (statusText) statusText.innerHTML = `Completed ✅`;
+        if (detailsText) detailsText.innerHTML = `File saved successfully ✅`;
 
     } catch (err) {
-        if (progressBar) progressBar.style.backgroundColor = "#F44336";
-
-if (detailsText) detailsText.innerHTML = `<i class="bi bi-x-circle"></i> ${err.message || " Unknown error"}`;
-
         console.error(`❗ Downloading error ${video.url}:`, err);
+        if (progressBar) progressBar.style.backgroundColor = "#F44336";
+        if (statusText) statusText.innerHTML = `❗ Error`;
+        if (detailsText) detailsText.innerHTML = `❗ ${err.message || "Unknown error"}`;
     } finally {
         if (spinner) spinner.style.display = "none";
+    }
+}
+
+
+async function prepareVideo(video, timeout = 10000) {
+    if (!video) return;
+    if (video.formats && video.formats.length > 0) return;
+
+    return new Promise(resolve => {
+        fetchVideoDetails(video);
+
+        const interval = setInterval(() => {
+            if (video.formats && video.formats.length > 0) {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(interval);
+            resolve(); 
+        }, timeout);
+    });
+}
+
+
+async function downloadVideoWhenReady(video) {
+    await prepareVideo(video);
+    return downloadSingleVideo(video);
+}
+
+
+async function downloadAllParallelAuto(maxParallel = 3) {
+    if (!videos.length) return;
+
+    const queue = [...videos];
+    let active = 0;
+
+    return new Promise(resolve => {
+        const next = () => {
+            if (queue.length === 0 && active === 0) {
+                showLog("All downloads completed!", "green");
+                return resolve();
+            }
+
+            while (active < maxParallel && queue.length) {
+                const video = queue.shift();
+                if (!video) continue;
+
+                active++;
+                downloadVideoWhenReady(video)
+                    .catch(err => console.error("❗ Video download error:", err))
+                    .finally(() => {
+                        active--;
+                        next(); 
+                    });
+            }
+        };
+        next();
+    });
+}
+
+async function addVideoOrPlaylistAuto(inputUrl, extraArgs = "") {
+    if (!inputUrl) return;
+
+    const cleanUrl = inputUrl.trim();
+    await addVideoOrPlaylist(cleanUrl, extraArgs);
+
+    const newVideos = videos.filter(v => v.extraArgs === extraArgs && !v._downloadScheduled);
+
+    for (const video of newVideos) {
+        video._downloadScheduled = true; 
+        downloadVideoWhenReady(video).catch(err => console.error(err));
     }
 }
 
@@ -764,33 +936,19 @@ function sanitizeFileName(name){
 window.downloadVideo = async (index) => {
     const video = videos[index];
     if (!video) return;
-    await downloadSingleVideo(video);
+
+    const videoFormatId = video.selectedVideoFormat;
+    const audioFormatId = video.selectedAudioFormat;
+
+    if (videoFormatId && audioFormatId && videoFormatId !== audioFormatId) {
+        await downloadVideoAndAudio(video, videoFormatId, audioFormatId);
+    } else {
+        await downloadSingleVideo(video, videoFormatId || audioFormatId);
+    }
 };
 
 
-async function downloadAllParallel() {
-    if (videos.length === 0) return;
-
-    const concurrency = 3; 
-    downloadAllBtn.disabled = true;
-    logArea.innerHTML = `<i class="bi bi-arrow-down-circle"></i> Download all videos in parallel...`;
-
-    logArea.style.color = "#0080FF";
-
-    for (let i = 0; i < videos.length; i += concurrency) {
-        const batch = videos.slice(i, i + concurrency);
-        await Promise.all(batch.map(video => downloadSingleVideo(video)));
-    }
-
-   logArea.innerHTML = `<i class="bi bi-check-circle"></i> All downloads completed! ✔️`;
-
-    setTimeout(() => { logArea.textContent = ""; }, 5000);
-    downloadAllBtn.disabled = false;
-}
-
-
 ipcRenderer.on("download-progress", (event, { url, data }) => {
-
     const video = videos.find(v => v.url === url);
     if (!video) return;
 
@@ -802,8 +960,7 @@ ipcRenderer.on("download-progress", (event, { url, data }) => {
     const statusText = videoDiv.querySelector(".status");
     const spinner = videoDiv.querySelector(".spinner");
 
-
-    const percentMatch = data.match(/(\d+(\.\d+)?)%/);
+    const percentMatch = data.match(/(\d+(?:\.\d+)?)%/);
     const percent = percentMatch ? parseFloat(percentMatch[1]) : video.progress || 0;
 
     const etaMatch = data.match(/ETA\s*([\d:]+)/);
@@ -812,7 +969,6 @@ ipcRenderer.on("download-progress", (event, { url, data }) => {
     const speedMatch = data.match(/([\d\.]+[KMG]i?B\/s)/i);
     const speedStr = speedMatch ? speedMatch[0] : "";
 
-
     video.progress = percent;
 
     if (progressBar) {
@@ -820,21 +976,22 @@ ipcRenderer.on("download-progress", (event, { url, data }) => {
         progressBar.style.backgroundColor = percent < 100 ? "#2196F3" : "#4CAF50";
     }
 
-if (detailsText) detailsText.innerHTML = `
-<span class="progress-text">
-  <div>${percent}%</div>
-  <div><i class="bi bi-speedometer2" style="margin-right:5px;"></i>${speedStr}</div>
-  <div><i class="bi bi-clock" style="margin-right:5px;"></i>${eta}</div>
-</span>
-`;
+    if (detailsText) {
+        detailsText.innerHTML = `
+            <div class="progress-text">
+                <span>${percent.toFixed(1)}%</span>
+                ${speedStr ? `<span style="margin-left:10px;">${speedStr}</span>` : ""}
+                ${eta ? `<span style="margin-left:10px;">ETA ${eta}</span>` : ""}
+            </div>
+        `;
+    }
 
     if (statusText) {
         if (percent >= 100) {
-            statusText.innerHTML = `<i class="bi bi-check-circle"></i> Completato ✅`;
-
+            statusText.innerHTML = `Completed`;
             if (spinner) spinner.style.display = "none";
         } else {
-            statusText.innerHTML = `<i class="bi bi-cloud-download-fill"></i> Download in progress...`;
+            statusText.innerHTML = `Download in progress...`;
             if (spinner) spinner.style.display = "inline-block";
         }
     }
@@ -853,35 +1010,48 @@ ipcRenderer.on("download-complete", (event, { url, code, error }) => {
     const progressBar = videoDiv.querySelector(".thumb-progress-bar");
     const detailsText = videoDiv.querySelector(".download-details");
 
-    if (spinner) spinner.style.display = "none"; 
+    if (spinner) spinner.style.display = "none";
     if (progressBar) {
         progressBar.style.width = "100%";
         progressBar.style.backgroundColor = code === 0 ? "#4CAF50" : "#F44336";
     }
-if (statusText) statusText.innerHTML = code === 0 
-    ? `<i class="bi bi-check-circle"></i> Completato` 
-    : `<i class="bi bi-x-circle"></i> Errore${error ? ": " + error : ""}`;
 
-if (detailsText) detailsText.innerHTML = code === 0 
-    ? `<i class="bi bi-download"></i>Completato ✅` 
-    : `<i class="bi bi-exclamation-triangle"></i> ${error || " Unknown error"}`;
+    if (statusText) {
+        statusText.innerHTML = code === 0
+            ? `Completed ✅`
+            : `❗ Error`;
+    }
 
+    if (detailsText) {
+        detailsText.innerHTML = code === 0
+            ? `File salvato correttamente 👍`
+            : `❗ ${error || "Unknown error"}`;
+    }
 });
 
 
-ipcRenderer.on("download-stopped",(event,{url})=>{
-    const video = videos.find(v=>v.url===url); if(!video) return;
-    const videoDiv = document.querySelector(`.video-item[data-pid="${video.pid}"]`); if(!videoDiv) return;
+
+ipcRenderer.on("download-stopped", (event, { url }) => {
+    const video = videos.find(v => v.url === url);
+    if (!video) return;
+
+    const videoDiv = document.querySelector(`.video-item[data-pid="${video.pid}"]`);
+    if (!videoDiv) return;
+
     const progressBar = videoDiv.querySelector(".thumb-progress-bar");
     const statusText = videoDiv.querySelector(".status");
     const detailsText = videoDiv.querySelector(".download-details");
-    const stopBtn = videoDiv.querySelector(".stop-btn");
+    const spinner = videoDiv.querySelector(".spinner");
 
-    if(progressBar) progressBar.style.backgroundColor="#F44336";
-if (statusText) statusText.innerHTML = `<i class="bi bi-slash-circle"></i> Interrupted`;
-if (detailsText) detailsText.innerHTML = `<i class="bi bi-download"></i> Interrupted`;
+    if (progressBar) progressBar.style.backgroundColor = "#F44336"; // red
+    if (statusText) statusText.innerHTML = `⛔ Interrupted`;
+    if (detailsText) detailsText.innerHTML = `⛔ Download stopped manually`;
+    if (spinner) spinner.style.display = "none";
 
+    video.status = "⛔ Interrupted";
 });
+
+
 //
 
 let logTimeout = null; 
@@ -902,47 +1072,94 @@ function showLog(message, color = "black", duration = 5000) {
 
 pasteBtn.addEventListener("click", async () => {
     try {
-        const text = await navigator.clipboard.readText();
-        if (!text.trim()) {
-            showLog(`<i class="bi bi-exclamation-triangle-fill"></i>⚠️ Clipboard vuota!`, "orange");
+
+        const clipboardText = await navigator.clipboard.readText();
+        const clipboardUrls = processTextInput(clipboardText).filter(isValidUrl);
+
+        const textareaUrls = processTextInput(urlArea.value).filter(isValidUrl);
+
+        const allUrls = [...new Set([...textareaUrls, ...clipboardUrls])];
+
+        if (allUrls.length === 0) {
+            showLog(`No valid link!`, "red");
             return;
         }
 
-        const urls = processTextInput(text).filter(isValidUrl);
-        if (urls.length === 0) {
-            showLog(`<i class="bi bi-exclamation-triangle-fill"></i> No valid link in the clipboard!`, "red");
-            return;
-        }
+        showLog(`⏳ Loading link…`, "#0080FF");
 
-        showLog(`<i class="bi bi-hourglass-split"></i> Loading clipboard…`, "#0080FF");
-
-        for (let i = 0; i < urls.length; i++) {
-            await addVideoOrPlaylist(urls[i]);
+        for (let i = 0; i < allUrls.length; i++) {
+            await addVideoOrPlaylist(allUrls[i]);
             await sleep(300);
-            showLog(`<i class="bi bi-hourglass-split"></i> Add ${i + 1} of ${urls.length}…`, "#0080FF", 2000);
+            showLog(`Aggiunto ${i + 1} di ${allUrls.length}…`, "#0080FF", 2000);
         }
 
-        showLog(`<i class="bi bi-check-circle"></i> Added ${urls.length} link from the clipboard!`, "green");
+        urlArea.value = allUrls.join("\n");
 
+        showLog(`Added ${allUrls.length} link! 🔗`, "green");
         updateVideoCount();
 
     } catch (err) {
-        console.error("❗ Errore leggendo clipboard:", err);
-        showLog(`<i class="bi bi-x-circle"></i> Unable to read clipboard.`, "red");
+        console.error("❗ Error reading clipboard or adding links:", err);
+        showLog(`🚫 Unable to read clipboard or add links.`, "red");
     }
 });
+
 
 
 
 downloadAllBtn?.addEventListener("click", async () => {
-    if (!videos.length) return;
+
+    const selectedVideos = videos.filter(v => v.selected);
+    if (!selectedVideos.length) {
+        showLog("🚫 No videos selected!", "orange");
+        return;
+    }
 
     if (parallelChk?.checked) {
-        await downloadAllParallelLimit(3); 
+        await downloadAllParallelLimitSelected(selectedVideos, 3);
     } else {
-        await downloadAllSequential();
+        await downloadAllSequentialSelected(selectedVideos);
     }
 });
+async function downloadAllSequentialSelected(selectedVideos) {
+    showLog("🔢 Start sequential download selected videos...", "orange");
+    for (let i = 0; i < selectedVideos.length; i++) {
+        const v = selectedVideos[i];
+        const index = videos.indexOf(v);
+        if (index !== -1) await downloadVideo(index);
+    }
+    showLog("Selected downloads completed ✅", "green");
+}
+
+async function downloadAllParallelLimitSelected(selectedVideos, maxParallel = 3) {
+    showLog(`Starting parallel download selected videos (max ${maxParallel})...`, "orange");
+
+    const queue = [...selectedVideos];
+    let active = 0;
+
+    return new Promise(resolve => {
+        function next() {
+            if (!queue.length && active === 0) {
+                showLog("All selected parallel downloads completed ✅", "green");
+                return resolve();
+            }
+
+            while (active < maxParallel && queue.length) {
+                const video = queue.shift();
+                const index = videos.indexOf(video);
+                if (index === -1) continue;
+
+                active++;
+                downloadVideo(index)
+                    .finally(() => {
+                        active--;
+                        next();
+                    });
+            }
+        }
+        next();
+    });
+}
 
 
 urlArea.addEventListener("input", () => {
@@ -954,10 +1171,10 @@ urlArea.addEventListener("input", () => {
 
 
 async function downloadAllSequential() {
-    showLog("⬇️ Start sequential download...", "orange");
+    showLog("🔢 Start sequential download...", "orange");
     for (let i = 0; i < videos.length; i++) {
         const v = videos[i];
-        if (v.status !== "completed") {
+        if (v.status !== "completed ✅") {
             await downloadVideo(i);
         }
     }
@@ -1074,27 +1291,26 @@ const updateLog = document.getElementById("updateLog");
 
 updateBtn.addEventListener("click", async () => {
     updateBtn.disabled = true;
-    updateBtn.textContent = "🔄 Update...";
+    updateBtn.textContent = "🔄 Updating...";
     updateLog.textContent = "";
 
     try {
         const result = await ipcRenderer.invoke("update-yt-dlp");
-       updateLog.innerHTML = result.output || `<i class="bi bi-check2-circle"></i> Update finished ✅`;
-
+       updateLog.innerHTML = result.output || `Update finished ✅`;
 
         setTimeout(() => {
             updateLog.textContent = "";
         }, 5000);
 
     } catch (err) {
-       updateLog.innerHTML = `<i class="bi bi-x-circle"></i>❗ Error while updating: ${err.message}`;
+       updateLog.innerHTML = `❗ Error while updating: ${err.message}`;
 
         setTimeout(() => {
             updateLog.textContent = "";
         }, 5000);
     } finally {
         updateBtn.disabled = false;
-        updateBtn.innerHTML = '<i class="bi bi-arrow-up-circle"></i> YT-DLP Update🔄';
+        updateBtn.innerHTML = '<i class="bi bi-arrow-up-circle"></i> Update yt-dlp';
     }
 });
 //
@@ -1102,7 +1318,6 @@ const downloadBtn = document.getElementById("download-binaries");
 const downloadBarInner = document.getElementById("download-bar-inner");
 const downloadPercentInner = document.getElementById("download-percent-inner");
 const downloadStatus = document.getElementById("download-status");
-
 
 
 downloadBtn.addEventListener("click", async () => {
@@ -1142,7 +1357,7 @@ ipcRenderer.on("download-binaries-log", (event, msg) => {
 });
 
 ipcRenderer.on("download-binaries-progress", (event, { percent }) => {
-    const currentMsg = document.getElementById("download-status").innerText || "⬇️ Download in progress...";
+    const currentMsg = document.getElementById("download-status").innerText || "Download in progress...";
     setDownloadProgressInner(percent, currentMsg);
 });
 
@@ -1154,88 +1369,91 @@ function toggleFormControls(disable = true) {
 if (rechargeLinkBtn) {
   rechargeLinkBtn.addEventListener("click", async () => {
     try {
-      toggleFormControls(true); 
-      logArea.innerHTML = `<i class="bi bi-arrow-repeat"></i> Restarting links in progress...`;
+      toggleFormControls(true);
+      if (!logArea) return console.error("❗ logArea element not found!");
+
+      logArea.style.color = "";
+      logArea.textContent = "♻️ Restarting links in progress...";
 
 
       videos.forEach(video => ipcRenderer.send("stop-download", video.url));
 
-
-      videos = [];
-      renderVideos();
-      updateVideoCount();
-
-
-      if (folderInput) setFolderPath(downloadFolder || "");
-
-
       const settings = await ipcRenderer.invoke("get-settings");
-
-
-      if (settings.options) {
-        audioOnlyChk.checked = settings.options.audioOnly || false;
-        playlistChk.checked = settings.options.playlist || false;
-        parallelChk.checked = settings.options.parallel || false;
-      }
-
-      // Carica i video salvati
       const links = settings.links || [];
 
       if (links.length > 0) {
-        logArea.innerHTML = `<i class="bi bi-arrow-repeat"></i> Reloading of ${links.length} saved videos...`;
+        videos = [];
+        renderVideos();
+        updateVideoCount();
+
+        logArea.innerHTML = `♻️ Reloading of ${links.length} saved videos...`;
         for (const v of links) {
           await addVideoOrPlaylist(v.url, v.extraArgs || "");
 
-
           const added = videos.find(x => x.url === v.url);
           if (added) {
-            added.title = v.title || added.title;
-            added.thumbnail = v.thumbnail || added.thumbnail;
-            added.duration = v.duration || added.duration;
-            added.format = v.format || added.format;
+            Object.assign(added, {
+              title: v.title || added.title,
+              thumbnail: v.thumbnail || added.thumbnail,
+              duration: v.duration || added.duration,
+              format: v.format || added.format
+            });
           }
         }
+
+        renderVideos();
+        updateVideoCount();
+        logArea.textContent = "Links restarted and videos reloaded! ✔️";
+      } else {
+        logArea.textContent = "⚠️ No saved links found.";
       }
 
-      renderVideos();
-      updateVideoCount();
-
-      logArea.innerHTML = `<i class="bi bi-check-circle"></i> Links restarted and videos reloaded!`;
       setTimeout(() => { logArea.textContent = ""; }, 2500);
 
     } catch (err) {
       console.error("❗ Error loading:", err);
-      logArea.innerHTML = `<i class="bi bi-x-circle"></i> Error while reloading!`;
+      logArea.innerHTML = `❗ Error while reloading!`;
       logArea.style.color = "red";
       setTimeout(() => { logArea.textContent = ""; logArea.style.color = ""; }, 3000);
     } finally {
-      toggleFormControls(false); 
+      toggleFormControls(false);
     }
   });
 }
 
 
+
 window.stopDownload = (index) => {
     const video = videos[index];
     if (!video) return;
+
     ipcRenderer.send("stop-download", video.url);
 
-    video.status = '<i class="bi bi-slash-circle"></i> Stopped ⛔';
+    video.status = '🔴 Outage in progress...';
 
     const videoDiv = document.querySelector(`.video-item[data-pid="${video.pid}"]`);
     if (videoDiv) {
         const statusText = videoDiv.querySelector(".status");
         const detailsText = videoDiv.querySelector(".download-details");
         const progressBar = videoDiv.querySelector(".thumb-progress-bar");
+        const spinner = videoDiv.querySelector(".spinner");
 
+        if (statusText) {
+            statusText.innerHTML = `🔴 Outage in progress...`;
+            statusText.style.color = "#FF9800";
+        }
 
-        if(progressBar) progressBar.style.backgroundColor="#F44336";
+        if (detailsText) {
+            detailsText.innerHTML = `Please wait...`;
+            detailsText.style.color = "#999";
+        }
 
-
-        if(statusText) statusText.innerHTML = video.status;
-
-        if(detailsText) detailsText.innerHTML = '<i class="bi bi-download"></i> Stopped ⛔';
+        if (progressBar) progressBar.style.backgroundColor = "#FF9800"; 
+        if (spinner) spinner.style.display = "inline-block";
     }
+
+    saveSettingsToMain();
 };
+
 
 window.addVideo = addVideo;
