@@ -536,118 +536,109 @@ function updateGroupBoxVisibility(anyThumbnailLoaded) {
         }, 300); // time fade-out
     }
 }
+// --- Aggiorna renderVideos per usare data-pid ---
 function renderVideos() {
     if (!videoList) return;
 
     let anyThumbnailLoaded = false;
-
     const existingItems = {};
     videoList.querySelectorAll('.video-item').forEach(el => {
         const pid = parseInt(el.dataset.pid);
         existingItems[pid] = el;
     });
 
-    videos.forEach((video, index) => {
+    videos.forEach((video) => {
         let div = existingItems[video.pid];
 
-        const domain = video.domain || getDomainFromUrl(video.url);
-        const durationLabel = video.duration
-            ? `<i class="bi bi-clock"></i> ${video.duration}<br><small><i class="bi bi-globe"></i> ${domain}</small>`
-            : `<small><i class="bi bi-globe"></i> ${domain}</small>`;
-
-        const formatOptions = video.formats
-            ? video.formats.map(f => `<option value="${f.format_id}">${f.format_id} (${f.ext})${f.sizeStr ? " - " + f.sizeStr : ""}</option>`).join("")
-            : "";
-
         const thumbHTML = video.thumbnail
-            ? `<input type="checkbox" class="download-checkbox overlay-checkbox" data-pid="${video.pid}" ${video.selected ? "checked" : ""}><img src="${video.thumbnail}" class="thumbnail" data-index="${index}">`
+            ? `<input type="checkbox" class="download-checkbox overlay-checkbox" data-pid="${video.pid}" ${video.selected ? "checked" : ""}><img src="${video.thumbnail}" class="thumbnail" data-pid="${video.pid}">`
             : `<div class="spinner"></div>`;
 
         if (video.thumbnail) anyThumbnailLoaded = true;
 
-        if (div) {
-            div.querySelector(".thumbnail-container").innerHTML = thumbHTML + '<div class="thumb-progress-bar"></div>';
-            div.querySelector("strong").innerHTML = escapeHtml(video.title);
-            div.querySelector(".status").innerHTML = video.status || "";
-            div.querySelector(".duration").innerHTML = durationLabel;
-            const select = div.querySelector(".quality-select");
-            if (select) select.innerHTML = `<option value="">Best MP4</option>` + formatOptions;
-            const checkbox = div.querySelector(".download-checkbox");
-            if (checkbox) checkbox.checked = !!video.selected;
-        } else {
-            // Create new item if it doesn't exist
+        if (!div) {
             div = document.createElement("div");
             div.className = "video-item";
             div.dataset.pid = video.pid;
             div.draggable = true;
 
             div.innerHTML = `
-			<div class="thumbnail-container">
-				${thumbHTML}
-				<div class="thumb-progress-bar"></div>					
-			</div>
+                <div class="thumbnail-container">
+                    ${thumbHTML}
+                    <div class="thumb-progress-bar"></div>                    
+                </div>
 
-            <div class="video-info">
-                <strong>${escapeHtml(video.title)}</strong>
-                <div class="status">${video.status || ""}</div>
-                <label>
-                    <select class="quality-select" data-index="${index}">
-                        <option value="">Best MP4</option>
-                        ${formatOptions}
-                    </select>
-                </label>
-             <div class="duration">${durationLabel}</div>
-                <div class="download-details"></div>
-            </div>
-            <div class="video-buttons">
-                <button class="download-btn" data-index="${index}"><i class="bi bi-download"></i></button>
-                <button class="stop-btn" data-index="${index}"><i class="bi bi-sign-stop"></i></button>
-                <button class="remove-btn" data-index="${index}"><i class="bi bi-trash"></i></button>
-                <button class="paste-btn" data-index="${index}"><i class="bi bi-link"></i></button>
-                <button class="open-btn" data-index="${index}"><i class="bi bi-globe2"></i></button>
-            </div>`;
+                <div class="video-info">
+                    <strong>${escapeHtml(video.title)}</strong>
+                    <div class="status">${video.status || ""}</div>
+                    <label>
+                        <select class="quality-select" data-pid="${video.pid}">
+                            <option value="">Best MP4</option>
+                            ${(video.formats||[]).map(f=>`<option value="${f.format_id}">${f.format_id} (${f.ext})${f.sizeStr ? " - "+f.sizeStr : ""}</option>`).join("")}
+                        </select>
+                    </label>
+                    <div class="duration">${video.duration || ""}</div>
+                    <div class="download-details"></div>
+                </div>
 
+                <div class="video-buttons">
+                    <button class="download-btn" data-pid="${video.pid}"><i class="bi bi-download"></i></button>
+                    <button class="stop-btn" data-pid="${video.pid}"><i class="bi bi-sign-stop"></i></button>
+                    <button class="remove-btn" data-pid="${video.pid}"><i class="bi bi-trash"></i></button>
+                    <button class="paste-btn" data-pid="${video.pid}"><i class="bi bi-link"></i></button>
+                    <button class="open-btn" data-pid="${video.pid}"><i class="bi bi-globe2"></i></button>
+                </div>`;
+            
             videoList.appendChild(div);
+        } else {
+            // Aggiorna contenuti esistenti
+            div.querySelector(".thumbnail-container").innerHTML = thumbHTML + '<div class="thumb-progress-bar"></div>';
+            div.querySelector("strong").innerHTML = escapeHtml(video.title);
+            div.querySelector(".status").innerHTML = video.status || "";
+            div.querySelector(".duration").innerHTML = video.duration || "";
         }
     });
 
+    // Rimuovi elementi non più presenti
     Object.keys(existingItems).forEach(pid => {
         if (!videos.find(v => v.pid == pid)) {
             videoList.removeChild(existingItems[pid]);
         }
+		  updateVideoCount();
     });
+
+  
+
 
     const totalCountContainer = document.getElementById("totalCountContainer");
     if (totalCountContainer) totalCountContainer.style.display = anyThumbnailLoaded ? "block" : "none";
     if (clearListBtn) clearListBtn.style.display = videos.length > 0 ? "inline-block" : "none";
     updateGroupBoxVisibility(anyThumbnailLoaded);
 
+// --- Handler click sui bottoni dei video ---
 videoList.onclick = (e) => {
-    const btn = e.target.closest("button[data-index]");
+    const btn = e.target.closest("button[data-pid]");
     if (!btn) return;
 
-    const index = parseInt(btn.dataset.index);
-    const video = videos[index];
+    const pid = parseInt(btn.dataset.pid);
+    const video = videos.find(v => v.pid === pid);
     if (!video) return;
 
     if (btn.classList.contains("download-btn")) {
-        downloadVideo(index);
+        downloadVideo(videos.indexOf(video));
     } 
     else if (btn.classList.contains("stop-btn")) {
-        stopDownload(index);
+        stopDownload(videos.indexOf(video));
     } 
     else if (btn.classList.contains("remove-btn")) {
-        removeVideo(index);
+        removeVideo(pid);
     } 
     else if (btn.classList.contains("paste-btn")) {
-        pasteLink(index);
+        pasteLink(videos.indexOf(video));
     } 
     else if (btn.classList.contains("open-btn")) {
-        openLink(index);
+        openLink(videos.indexOf(video));
     } 
-    else if (e.target.closest(".thumbnail")) {
-        openThumbnail(index);
-    }
 };
 
 
@@ -673,22 +664,22 @@ window.openThumbnail = (index) => { if(videos[index]?.thumbnail) shell.openExter
 window.setFormat = (index, formatId) => { if(videos[index]) videos[index].format = formatId; };
 
 
-window.removeVideo = (index) => {
-    if (!videos[index]) return;
+// --- Funzione removeVideo aggiornata ---
+window.removeVideo = (pid) => {
+    const video = videos.find(v => v.pid === pid);
+    if (!video) return;
 
-    const container = document.getElementById(`player-container-${index}`);
-    if (container) {
-        const videoEl = container.querySelector("video");
-        if (videoEl) {
-            videoEl.pause();
-            videoEl.currentTime = 0;
-        }
-    }
+    // Ferma il download se in corso
+    ipcRenderer.send("stop-download", video.url);
 
-    if (clipboard.readText().trim() === videos[index].url) clipboard.writeText("");
+    // Rimuove dagli appunti se presente
+    if (clipboard.readText().trim() === video.url) clipboard.writeText("");
 
-    videos.splice(index, 1);
+    // Rimuove dal DOM e array
+    videos = videos.filter(v => v.pid !== pid);
     renderVideos();
+    updateVideoCount();
+    saveSettingsToMain();
 };
 
 window.pasteLink = async (index) => {
