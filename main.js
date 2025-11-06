@@ -45,7 +45,7 @@ const ytDlpPath = path.join(getBinDir(), process.platform === "win32" ? "yt-dlp.
 
 function ensureYtDlpExists() {
     if (!fs.existsSync(ytDlpPath)) {
-        const msg = `yt-dlp not found in: ${ytDlpPath}`;
+        const msg = `yt-dlp non trovato in: ${ytDlpPath}`;
         logError(msg);
         throw new Error(msg);
     }
@@ -121,11 +121,11 @@ function createWindow() {
     mainWindow.loadFile("index.html");
 	mainWindow.webContents.on("context-menu", (e, params) => {
     Menu.buildFromTemplate([
-    { role: "copy", label: "Copy   Ctrl + C" },
-    { role: "paste", label: "Paste   Ctrl + V" },
-    { role: "cut", label: "Cut   Ctrl + X" },
+    { role: "copy", label: "copy" },
+    { role: "paste", label: "paste" },
+    { role: "cut", label: "cut" },
     { type: "separator" },
-    { role: "selectAll", label: "SelectAll   Ctrl + A" }
+    { role: "selectAll", label: "selectAll" }
   ]).popup();
 });
 
@@ -259,34 +259,27 @@ ipcMain.handle("update-yt-dlp", async (event) => {
 
 ipcMain.handle("download-binaries", async (event) => {
     const binFolder = getBinDir();
+    if (!fs.existsSync(binFolder)) fs.mkdirSync(binFolder, { recursive: true });
 
     try {
-        if (fs.existsSync(binFolder)) {
-            sendToRenderer("download-binaries-log", "🧹 Cleaning the binary folder...");
-            fs.rmSync(binFolder, { recursive: true, force: true });
-        }
-
-        fs.mkdirSync(binFolder, { recursive: true });
-
         const ffZipPath = path.join(binFolder, "ffmpeg.zip");
-        const tempFolder = path.join(binFolder, "ffmpeg-temp");
-
-        sendToRenderer("download-binaries-log", "⬇️ Downloading FFmpeg/FFprobe ZIP...");
-        await downloadFileWithRetry(
-            "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
-            ffZipPath
-        );
-
-        if (!fs.existsSync(ffZipPath) || fs.statSync(ffZipPath).size < 1024) {
-            throw new Error("FFmpeg ZIP download failed or is incomplete.");
+        if (!fs.existsSync(ffZipPath)) {
+            sendToRenderer("download-binaries-log", "⬇️ Downloading FFmpeg/FFprobe ZIP...");
+            await downloadFile(
+                "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                ffZipPath
+            );
         }
+
+        const tempFolder = path.join(binFolder, "ffmpeg-temp");
+        if (!fs.existsSync(tempFolder)) fs.mkdirSync(tempFolder);
 
         sendToRenderer("download-binaries-log", "🧪 Extracting FFmpeg/FFprobe...");
         await extract(ffZipPath, { dir: tempFolder });
 
         const extractedRoot = fs.readdirSync(tempFolder)
             .map(f => path.join(tempFolder, f))
-            .find(f => fs.statSync(f).isDirectory());
+            .find(f => fs.statSync(f).isDirectory()); 
 
         const internalBin = path.join(extractedRoot, "bin");
         const filesToMove = ["ffmpeg.exe", "ffprobe.exe"];
@@ -301,24 +294,21 @@ ipcMain.handle("download-binaries", async (event) => {
         if (fs.existsSync(tempFolder)) fs.rmSync(tempFolder, { recursive: true, force: true });
 
         const ytdlpPath = path.join(binFolder, "yt-dlp.exe");
-        sendToRenderer("download-binaries-log", "⬇️ Downloading yt-dlp...");
-        await downloadFileWithRetry(
-            "https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe",
-            ytdlpPath
-        );
-
-        if (!fs.existsSync(ytdlpPath) || fs.statSync(ytdlpPath).size < 1024) {
-            throw new Error("yt-dlp download failed or is incomplete.");
+        if (!fs.existsSync(ytdlpPath)) {
+            sendToRenderer("download-binaries-log", "⬇️ Downloading yt-dlp...");
+            await downloadFile(
+                "https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe",
+                ytdlpPath
+            );
         }
 
-        sendToRenderer("download-binaries-log", "✅ All the tracks have been downloaded and ready!");
+        sendToRenderer("download-binaries-log", "All binaries downloaded and ready! ✅");
         return "Completed!";
     } catch (err) {
         logError(`❗ Download-binaries error: ${err.message}`);
         throw err;
     }
 });
-
 
 
 ipcMain.handle("start-download", (event, video) => startDownload(video));
@@ -331,7 +321,7 @@ ipcMain.on("stop-download", (event, url) => {
     if (proc && !proc.killed) {
         kill(proc.pid, "SIGTERM", (err) => {
             if (err) console.error("❗ Error killing proc:", err);
-            entry.status = 'Stopped';
+            entry.status = '<i class="bi bi-x-circle"></i> Stopped';
 
             event.sender.send("download-stopped", { url });
             delete activeDownloads[url];
@@ -343,7 +333,7 @@ function startDownload(video) {
     try { 
         ensureYtDlpExists(); 
     } catch (err) {
-        logError(`yt-dlp not found: ${err.message}`);
+        logError(`yt-dlp non trovato: ${err.message}`);
         sendToRenderer("download-complete", { url: video.url || "🕵️‍♂️ unknown", code: 1, error: err.message });
         return;
     }
@@ -379,8 +369,8 @@ if (video.playlist) {
 
     const downloadUrl = video.urlHls || video.url;
     if (!downloadUrl) {
-        logError(`Download failed: URL not defined for ${video.title}`);
-        sendToRenderer("download-complete", { url: video.url || "unknown", code: 1, error: "⚠️ URL not defined" });
+        logError(`Download fallito: URL non definito per ${video.title}`);
+        sendToRenderer("download-complete", { url: video.url || "unknown", code: 1, error: "⚠️ URL non definito" });
         return;
     }
     args.push(downloadUrl);
@@ -405,13 +395,7 @@ if (video.playlist) {
 
 async function downloadFile(url, dest) {
     const writer = fs.createWriteStream(dest);
-    const response = await axios({
-        url,
-        method: "GET",
-        responseType: "stream",
-        timeout: 60000, 
-    });
-
+    const response = await axios({ url, method: "GET", responseType: "stream" });
     const total = parseInt(response.headers["content-length"], 10) || 0;
     let downloaded = 0;
 
@@ -424,27 +408,10 @@ async function downloadFile(url, dest) {
     response.data.pipe(writer);
 
     return new Promise((resolve, reject) => {
-        writer.on("error", err => {
-            writer.close(() => reject(err));
-        });
-
-        writer.on("finish", () => {
-            writer.close(async () => {
-                try {
-                    const stats = fs.statSync(dest);
-                    if (stats.size < 1024) {
-                        fs.unlinkSync(dest);
-                        return reject(new Error("ERROR❗  Downloaded file is empty or incomplete."));
-                    }
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        });
+        writer.on("finish", resolve);
+        writer.on("error", reject);
     });
 }
-
 
 async function downloadFileWithRetry(url, dest, retries = 3) {
     for (let i = 0; i < retries; i++) {

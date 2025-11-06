@@ -1,6 +1,6 @@
 {
   "name": "aldownloader-gui",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "AL Downloader",
   "main": "main.js",
   "scripts": {
@@ -30,7 +30,6 @@
       "main.js",
       "renderer.js",
       "index.html",
-      "settings.html",
       "style.css",
       "assets/**/*",
       "css/**/*",
